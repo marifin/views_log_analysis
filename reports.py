@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 import psycopg2
 
@@ -27,12 +28,12 @@ pop_author = (
     """)
 
 q_most_errors_day = ("3. On which days did more than 1% of requests "
-    "lead to errors?")
+                     "lead to errors?")
 
 most_errors_day = (
 
     """With allstatus as (
-         select time::date as day, count(*) as total
+         select time::date as day, count(*)::decimal as total
          from log group by day order by day),
          onepercent as (select day, total*0.01 as oneperc
          from allstatus group by day, total order by day),
@@ -40,12 +41,12 @@ most_errors_day = (
          from log
          where status = '404 NOT FOUND' group by day order by day),
          final as (select onepercent.day as finalday,
-         errors.errorperday::float as finalerror
+         errors.errorperday::decimal as finalerror
          from errors, onepercent
          where onepercent.day = errors.day and errorperday > oneperc
          group by onepercent.day, errors.errorperday order by onepercent.day)
          select to_char(final.finalday, 'FMMonth DD, YYYY'),
-         round(cast((final.finalerror/allstatus.total)*100 as numeric), 1)
+         round((final.finalerror/allstatus.total*100.0), 1)
          from allstatus, final where final.finalday = allstatus.day;
     """)
 
@@ -73,8 +74,8 @@ def print_result(question, query_result):
     if question == q_most_errors_day:
         for array in query_result:
             print('   {}  -  {}% errors'.format(array[0], array[1]))
-
     print("\n\n")
+
 
 query_result = run_query(pop_article)
 print_result(q_pop_article, query_result)
